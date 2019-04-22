@@ -1,12 +1,12 @@
 {
   "mention_b": {
     "penalty": 1.0,
-    "output_fn": {
+    "output_fn": { // The function that takes a token embedding and produces a prediction
       "name": "softmax_classifier"
     },
     "eval_fns": {
       "m_b_accuracy": {
-        "name": "accuracy"
+        "name": "accuracy" // Refers to an existing implementation of accuracy in evaluation_functions.py
       }
     }
   }
