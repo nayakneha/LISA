@@ -6,7 +6,17 @@
     },
     "eval_fns": {
       "m_e_accuracy": {
-        "name": "accuracy"
+        "name": "accuracy",
+
+        "params": {
+          "predictions": {
+            "layer": "mention_e",
+            "output": "predictions"
+          },
+          "targets": {
+            "label": "mention_e"
+          }
+        }
       }
     }
   }
