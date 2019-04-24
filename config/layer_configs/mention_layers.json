@@ -1,4 +1,4 @@
 {
-  "mention_b": 10,
+  "mention_b": 10, // take the output of self attention layer 10; it goes to the output fn defined in the task configs
   "mention_e": 11
 }
