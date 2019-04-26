@@ -7,6 +7,22 @@ def create_metric_variable(name, shape, dtype):
   return tf.get_variable(name=name, shape=shape, dtype=dtype, trainable=False,
                          collections=[tf.GraphKeys.LOCAL_VARIABLES, tf.GraphKeys.METRIC_VARIABLES])
 
+def fbeta_calc(precision, recall, beta):
+  """Overloaded"""
+  return (
+      (1.0 + beta * beta) * precision * recall /
+      ((beta * beta * precision) + recall))
+
+def fbeta_tf(predictions, targets, mask, beta=2.0):
+  with tf.name_scope('fbeta'):
+    precision, p_op = tf.metrics.precision(
+        labels=targets, predictions=predictions, weights=mask)
+    recall, r_op = tf.metrics.recall(
+        labels=targets, predictions=predictions, weights=mask)
+    print(type(precision))
+    print(type(recall))
+    print(type(beta))
+    return fbeta_calc(precision, recall, beta), fbeta_calc(p_op, r_op, beta)
 
 def accuracy_tf(predictions, targets, mask):
   with tf.name_scope('accuracy'):
@@ -131,6 +147,7 @@ def conll_parse_eval_tf(predictions, targets, parse_head_predictions, words, mas
 
 dispatcher = {
   'accuracy': accuracy_tf,
+  'fbeta': fbeta_tf,
   'conll_srl_eval': conll_srl_eval_tf,
   'conll_parse_eval': conll_parse_eval_tf,
   'conll09_srl_eval': conll09_srl_eval_tf,
@@ -138,6 +155,7 @@ dispatcher = {
 
 
 def dispatch(fn_name):
+  print(fn_name)
   try:
     return dispatcher[fn_name]
   except KeyError:

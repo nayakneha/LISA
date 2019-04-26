@@ -92,6 +92,26 @@ def accuracy_np(predictions, targets, mask, accumulator):
   accuracy = accumulator['correct'] / accumulator['total']
   return accuracy
 
+def mask_and_count(values, mask):
+  return np.sum(np.multiple(values, mask))
+
+def fbeta_helper(predictions, targets, mask, beta):
+  correct_v = np.multiply(predictions == targets, mask)
+  accumulator['tp'] += mask_and_count(np.dot(correct_v, targets))
+  accumulator['fp'] += mask_and_count(np.dot((1.0 - correct_v), targets))
+  accumulator['tn'] += mask_and_count(np.dot(correct_v, (1.0 - targets)))
+  accumulator['fn'] += mask_and_count(np.dot((1.0 - correct_v), (1.0 - targets)))
+  precision = accumulator['tp']/(accumulator['tp'] + accumulator['fp'])
+  recall = accumulator['tp']/(accumulator['tp'] + accumulator['fn'])
+  return (
+      (1.0 + beta * beta) * precision * recall /
+      ((beta * beta * precision) + recall))
+
+fbeta_v = np.vectorize(fbeta_helper)
+
+def fbeta_np(predictions, targets, mask, accumulator, beta=2.0):
+  return fbeta_v(predictions, targets, mask, accumulator, beta)
+
 
 # Write targets file w/ format:
 # -        (A1*  (A1*
