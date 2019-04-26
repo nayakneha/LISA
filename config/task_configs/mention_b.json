@@ -1,7 +1,7 @@
 {
   "mention_b": {
     "penalty": 1.0,
-    "output_fn": { // The function that takes a token embedding and produces a prediction
+    "output_fn": {
       "name": "softmax_classifier"
     },
     "eval_fns": {
