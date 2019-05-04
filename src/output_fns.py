@@ -3,6 +3,7 @@ from tensorflow.estimator import ModeKeys
 import nn_utils
 import tf_utils
 
+tlog = lambda x: tf.logging.info(x) 
 
 def softmax_classifier(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, transition_params):
 
@@ -14,29 +15,48 @@ def softmax_classifier(mode, hparams, model_config, inputs, targets, num_labels,
     # with tf.variable_scope('MLP'):
     #   mlp = nn_utils.MLP(inputs, projection_dim, keep_prob=hparams.mlp_dropout, n_splits=1)
     with tf.variable_scope('Classifier'):
-      logits = nn_utils.MLP(inputs, num_labels, keep_prob=hparams.mlp_dropout, n_splits=1)
+      a_print = inputs
+      b_print = tf.Print(a_print,
+                         [tf.cast(tf.argmax(a_print, axis=-1), tf.int32),
+                          tf.shape(a_print),
+                          tf.shape(tf.argmax(a_print, axis=-1)),
+  ], "more print trials inputs ", summarize=10)
+
+      #logits = nn_utils.MLP(inputs, num_labels, keep_prob=hparams.mlp_dropout, n_splits=1)
+      logits = nn_utils.MLP(b_print, num_labels, keep_prob=hparams.mlp_dropout, n_splits=1)
 
     # todo implement this
     if transition_params is not None:
       print('Transition params not yet supported in softmax_classifier')
       exit(1)
 
+    a_print = tf.reshape(logits, [-1, num_labels])
+    b_print = tf.Print(a_print,
+                       [tf.cast(tf.argmax(a_print, axis=-1), tf.int32),
+                        tf.shape(a_print),
+                        tf.shape(tf.argmax(a_print, axis=-1)),
+], "more print trials 3", summarize=10)
+
+
+
     # cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
     targets_onehot = tf.one_hot(indices=targets, depth=num_labels, axis=-1)
-    loss = tf.losses.softmax_cross_entropy(logits=tf.reshape(logits, [-1, num_labels]),
+    #loss = tf.losses.softmax_cross_entropy(logits=tf.reshape(logits, [-1, num_labels]),
+    loss = tf.losses.softmax_cross_entropy(logits=b_print,
                                            onehot_labels=tf.reshape(targets_onehot, [-1, num_labels]),
                                            weights=tf.reshape(tokens_to_keep, [-1]),
                                            label_smoothing=hparams.label_smoothing,
                                            reduction=tf.losses.Reduction.SUM_BY_NONZERO_WEIGHTS)
 
     predictions = tf.cast(tf.argmax(logits, axis=-1), tf.int32)
-
+  
     output = {
       'loss': loss,
       'predictions': predictions,
       'scores': logits,
       'probabilities': tf.nn.softmax(logits, -1)
     }
+
 
   return output
 

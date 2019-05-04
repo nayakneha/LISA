@@ -5,8 +5,8 @@
       "name": "softmax_classifier"
     },
     "eval_fns": {
-      "m_e_fbeta": {
-        "name": "fbeta",
+      "m_e_accuracy": {
+        "name": "accuracy",
 
         "params": {
           "predictions": {
