@@ -13,16 +13,11 @@ import util
 import sys
 from lazy_adam_v2 import LazyAdamOptimizer
 
-tlog = lambda x: tf.logging.info(x) 
+tlog = lambda x: tf.logging.info(x)
 
-def get_spans_from_predictions(b_predictions, e_predictions):
-  sys.stderr.write("hgfdshgfhgfjhcfgn")
-  tlog("predictions")
-  tlog("trying to print omg")
-  tlog(b_predictions)
-  print_output = tf.Print(b_predictions, [b_predictions])
-  return(print_output)
-  
+def span_vectorizer(layer_n, spans):
+  pass
+
 class LISAModel:
 
   def __init__(self, hparams, model_config, task_config, attention_config, feature_idx_map, label_idx_map,
@@ -77,7 +72,6 @@ class LISAModel:
     with tf.variable_scope("LISA", reuse=tf.AUTO_REUSE):
 
       batch_shape = tf.shape(features)
-      print(batch_shape)
       batch_size = batch_shape[0]
       batch_seq_len = batch_shape[1]
       layer_config = self.model_config['layers']
@@ -98,6 +92,7 @@ class LISAModel:
       # Extract named labels from monolithic "features" input, and mask them
       # todo fix masking -- is it even necessary?
       labels = {}
+      tlog(self.label_idx_map)
       for l, idx in self.label_idx_map.items():
         these_labels = features[:, :, idx[0]:idx[1]] if idx[1] != -1 else features[:, :, idx[0]:]
         these_labels_masked = tf.multiply(these_labels, tf.cast(tf.expand_dims(tokens_to_keep, -1), tf.int32))
@@ -111,6 +106,9 @@ class LISAModel:
         else:
           these_labels_masked = tf.squeeze(these_labels_masked, -1)
         labels[l] = these_labels_masked
+
+      tlog(labels.keys())
+      tlog(labels["spans"])
 
       # load transition parameters
       transition_stats = util.load_transition_params(self.task_config, self.vocab)
@@ -157,9 +155,7 @@ class LISAModel:
       with tf.variable_scope('transformer'):
         current_input = transformer.add_timing_signal_1d(current_input)
         for i in range(num_layers):
-          tlog("Layer number " + str(i))
           with tf.variable_scope('layer%d' % i):
-            print("Prediction keys", predictions.keys())
 
             special_attn = []
             special_values = []
@@ -191,12 +187,9 @@ class LISAModel:
               current_input = nn_utils.layer_norm(current_input)
 
               # todo test a list of tasks for each layer
+              tlog(self.task_config)
               for task, task_map in self.task_config[i].items():
-                tlog("bababa")
-                tlog(task)
-                #a_print = labels[task]
-                #b_print = tf.Print(a_print, [a_print, tf.shape(a_print)], "more print trials", summarize=500)
-                #task_labels = b_print
+                tlog(labels)
                 task_labels = labels[task]
                 task_vocab_size = self.vocab.vocab_names_sizes[task] if task in self.vocab.vocab_names_sizes else -1
 
@@ -218,21 +211,12 @@ class LISAModel:
                         tf.logging.INFO,
                         "Created transition params for %s %s" % (train_or_decode_str, task))
 
-                print("Prediction keys 2 ", predictions.keys())
-                #a_print = predictions
-                #b_print = tf.Print(a_print,
-                #                   [a_print, tf.shape(a_print)], "more print trials 2", summarize=500)
                 output_fn_params = output_fns.get_params(mode, self.model_config, task_map['output_fn'], predictions,
-                #output_fn_params = output_fns.get_params(mode, self.model_config, task_map['output_fn'], b_print,
                                                          feats, labels, current_input, task_labels, task_vocab_size,
                                                          self.vocab.joint_label_lookup_maps, tokens_to_keep,
                                                          transition_params, hparams)
                 task_outputs = output_fns.dispatch(task_map['output_fn']['name'])(**output_fn_params)
-                #a_print = task_outputs["predictions"]
-                #b_print = tf.Print(a_print,
-                #                   [a_print, tf.shape(a_print)], "more print trials 2", summarize=500)
-                #task_outputs["predictions"] = b_print
-                
+
                 # want task_outputs to have:
                 # - predictions
                 # - loss
@@ -240,18 +224,9 @@ class LISAModel:
                 # - probabilities
                 predictions[task] = task_outputs
 
-                                # do the evaluation
+                # do the evaluation
                 for eval_name, eval_map in task_map['eval_fns'].items():
-                  print(predictions.keys())
-                  a_print = predictions["mention_b"]["predictions"]
-                  print(type(a_print))
-                  print(a_print)
-                  b_print = tf.Print(a_print,
-                                   [a_print, tf.shape(a_print)], "more print trials 2", summarize=500)
-                  predictions["mention_b"]["predictions"] = b_print * b_print
-
                   eval_fn_params = evaluation_fns.get_params(task_outputs, eval_map, predictions, feats, labels,
-                  #eval_fn_params = evaluation_fns.get_params(task_outputs, eval_map, b_print, feats, labels,
                                                              task_labels, self.vocab.reverse_maps, tokens_to_keep)
                   eval_result = evaluation_fns.dispatch(eval_map['name'])(**eval_fn_params)
                   eval_metric_ops[eval_name] = eval_result
@@ -265,16 +240,16 @@ class LISAModel:
                 # add this loss to the overall loss being minimized
                 loss += this_task_loss
 
-      spans = get_spans_from_predictions(predictions["mention_b"]["predictions"],
-                                         predictions["mention_e"]["predictions"])
-      k = tf.reshape(predictions["mention_b"]['predictions'], batch_shape)
-      l = tf.reshape(predictions["mention_e"]['predictions'], batch_shape)
-      a_print = tf.tensordot(k, l, axes=0)
-      b_print = tf.Print(a_print, [a_print], "trying to print dot product: ")
+      reshaped_b = tf.reshape(predictions["mention_b"]['predictions'], batch_shape)
+      reshaped_e = tf.reshape(predictions["mention_e"]['predictions'], batch_shape)
+      outer_pdt = tf.tensordot(reshaped_b, reshaped_e, axes=0)
       zero = tf.constant(0, dtype=tf.int32)
-      where = tf.not_equal(b_print, zero)
-      tlog(tf.where(where))
-      dsds
+      where = tf.not_equal(outer_pdt, zero)
+      tlog("Printing where")
+      # TODO: remove backward spans, apply mask
+      a_print = tf.where(where)
+      b_print = tf.Print(a_print, [a_print], "where indices")
+      spans = tf.where(b_print)
 
 
       # set up moving average variables
@@ -324,8 +299,5 @@ class LISAModel:
                        "Created model with %d trainable parameters" % tf_utils.get_num_trainable_parameters())
         tlog("predictions")
         tlog(predictions)
-        spans = get_spans_from_predictions(predictions["mention_b"]["predictions"],
-                                           predictions["mention_e"]["predictions"])
-        
         return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
                                           training_hooks=[logging_hook], export_outputs=export_outputs)

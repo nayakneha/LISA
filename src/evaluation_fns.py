@@ -15,13 +15,14 @@ def fbeta_calc(precision, recall, beta):
 
 def fbeta_tf(predictions, targets, mask, beta=2.0):
   with tf.name_scope('fbeta'):
+    running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES)
+
+    return tf.metrics.precision(
+        labels=targets, predictions=predictions, weights=mask)
     precision, p_op = tf.metrics.precision(
         labels=targets, predictions=predictions, weights=mask)
     recall, r_op = tf.metrics.recall(
         labels=targets, predictions=predictions, weights=mask)
-    print(type(precision))
-    print(type(recall))
-    print(type(beta))
     return fbeta_calc(precision, recall, beta), fbeta_calc(p_op, r_op, beta)
 
 def accuracy_tf(predictions, targets, mask):

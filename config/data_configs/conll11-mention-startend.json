@@ -45,13 +45,20 @@
     "vocab": "parse_label"
   },
   "mention_b": {
-   "conll_idx": -2,
+   "conll_idx": -3,
    "label": true,
    "vocab": "mention_b"
   },
   "mention_e": {
-   "conll_idx": -1,
+   "conll_idx": -2,
    "label": true,
    "vocab": "mention_e"
+  },
+  "spans": {
+   "conll_idx": -1,
+   "label": true,
+   "converter":  {
+     "name": "span_starts"
+   }
   }
 }
