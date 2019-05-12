@@ -1,9 +1,18 @@
+import tensorflow as tf
 import constants
 
 
 def lowercase_converter(split_line, idx):
   return [split_line[idx].lower()]
 
+def span_start_converter(split_line, idx):
+  assert type(idx) == int
+  maybe_labels = split_line[idx]
+  if maybe_labels == '-':
+    span_starts = ["-1"]
+  else:
+    span_starts = maybe_labels.split("|")
+  return span_starts
 
 def parse_roots_self_loop_converter(split_line, idx):
   # idx[0] is parse head, idx[1] is token id
@@ -55,7 +64,8 @@ dispatcher = {
   'joint_converter': joint_converter,
   'idx_range_converter': idx_range_converter,
   'idx_list_converter': idx_list_converter,
-  'default_converter': idx_list_converter
+  'default_converter': idx_list_converter,
+  'span_starts': span_start_converter
 }
 
 
